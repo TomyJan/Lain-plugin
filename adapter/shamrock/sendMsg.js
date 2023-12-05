@@ -195,7 +195,7 @@ export default class SendMsg {
         // console.log("发送消息:", { echo, action, params })
 
         /** 等待返回结果 */
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 200; i++) {
             let data = await Bot.lain.on.get(echo)
             if (data) {
                 Bot.lain.on.delete(echo)

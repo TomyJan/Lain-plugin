@@ -26,7 +26,10 @@ class Shamrock {
         bot.on("message", async (data) => {
             data = JSON.parse(data)
             /** 带echo事件另外保存 */
-            if (data?.echo) return Bot.lain.on.set(data.echo, data)
+            if (data?.echo) {
+                console.log("收到上报事件", data)
+                return Bot.lain.on.set(data.echo, data)
+            }
 
             try {
                 await this.event(id, data)

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<head>
+    <style>
+        html,
+        body {
+            margin: 20px;
+            padding: 20px;
+            max-width: 800px;
+            width: auto;
+            height: auto;
+        }
+
+        body {
+            animation: gradient 40s ease infinite;
+            background: linear-gradient(45deg, #FAC9B8, #FFD8C2, #FFEFB2, #FFE4D4, #C2E4E8, #FFC7CE, #FEDCD2, #575040, #6de5dc, #B7E3E9, #FFDAB9, #76aee7, #FFE6E6, #B5EAD7, #F6D5E3, #F7EEA7, #FFDAC1, #B0E0E6, #FFB6C1, #F4F9C4);
+            background-size: 400% 400%;
+            font-family: 'Open Sans', sans-serif;
+            justify-content: center;
+            align-items: center;
+            padding: 20;
+            margin: 20;
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        body:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(20px);
+            z-index: -1;
+        }
+
+        .flex-container {
+            display: flex;
+            /* 使用Flexbox布局 */
+            margin-bottom: 20px;
+            /* height: auto; */
+            /* 自动高度 */
+            min-height: 80px;
+            /* 垂直居中对齐 */
+            /* align-items: center; */
+            /* 添加这一行 */
+        }
+
+        .avatar {
+            width: 80px;
+            /* 头像的宽度 */
+            height: 80px;
+            /* 头像的高度 */
+            border-radius: 50%;
+            /* 圆形头像 */
+            margin-top: 18px;
+            /* 添加这一行 */
+        }
+
+        .name {
+            margin: 10px;
+            border-radius: 10px;
+            padding: 5px;
+            line-height: 1.5;
+        }
+
+        .container {
+            width: auto;
+            /* 自动宽度 */
+            max-width: 500px;
+            /* 设置最大宽度 */
+            height: auto;
+            /* 自动高度 */
+            min-height: 50px;
+            /* 最小高度为0 */
+            margin: 10px;
+            /* 设置四周边距为10px */
+            border-radius: 10px;
+            /* 边框半径为10px */
+            background-color: rgba(250, 250, 250, 0.724);
+            /* 背景颜色 */
+            padding: 5px;
+            /* 内边距为5px */
+            transition: 0.8s cubic-bezier(0.83, 0.02, 0.38, 1);
+            /* 过渡效果 */
+            border: 2px solid #f5f5f5;
+            /* 边框 */
+            box-sizing: border-box;
+            /* 盒模型 */
+            scrollbar-width: thin;
+            white-space: normal;
+            /* 换行方式 */
+            word-wrap: break-word;
+            /* 自动换行 */
+            line-height: 1.5;
+            /* 行高 */
+            overflow-wrap: break-word;
+            /* 溢出换行 */
+            word-wrap: break-word;
+            /* 自动换行 */
+            text-align: left;
+            /* 文本居中 */
+        }
+
+
+        .author {
+            display: block;
+            font-size: 16px;
+            line-height: 24px;
+            color: #000000;
+            text-align: center;
+            padding-left: 20px
+        }
+
+        .normal-text {
+            word-wrap: break-word;
+            line-height: 3;
+        }
+    </style>
+
+    <script>
+        window.onload = function () {
+            const msg = "{{msg}}"
+            const old_div = document.getElementById('msg')
+
+            // 检查消息是否是一个Base64编码的图片
+            if (msg.startsWith('base64://')) {
+                const div = document.createElement('div')
+                div.classList.add('normal-text')
+
+                // 修改图片容器的宽度
+                document.body.style.maxWidth = "300px"
+
+                // 修改容器为居中显示
+                const _err = document.querySelector('.error')
+                _err.style.textAlign = 'center'
+                const _msg = document.querySelector('.message')
+                _msg.style.textAlign = 'center'
+
+                // 在循环之前添加一个p标签
+                old_div.innerHTML = '<p>请扫码查看：</p>'
+
+                // 图片
+                const img = document.createElement('img')
+                img.src = "data:image/png;base64," + msg.replace("base64://", "")
+                div.appendChild(img)
+                old_div.appendChild(div)
+            } else {
+                // 在循环之前添加一个p标签
+                old_div.innerHTML = '<p>原始消息：</p>'
+
+                const msg_split = msg.split('\n\n')
+                // 创建并插入div
+                for (let i = 0; i < msg_split.length; i++) {
+                    const div = document.createElement('div')
+                    div.classList.add('normal-text')
+
+                    const list = msg_split[i].split('\n')
+                    for (let j = 0; j < list.length; j++) {
+                        const text = document.createTextNode(list[j])
+                        div.appendChild(text)
+                    }
+                    old_div.appendChild(div)
+                }
+            }
+        }        
+    </script>
+</head>
+
+<body>
+    <h1 style="text-align: center; word-wrap: break-word;">转发消息预览</h1>
+
+    <div id="node">
+
+    </div>
+
+    <div class="author"><b>Created By Miao-Yunzai <span>3.1.2</span> & Lain-plugin
+            <span>1.4.4</span></b></div>
+</body>
