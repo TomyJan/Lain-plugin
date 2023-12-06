@@ -244,17 +244,17 @@ async function getUrls(url) {
 }
 
 /** 渲染图片 */
-async function rendering(content, error) {
+async function rendering(content, error, type = "Lain-plugin") {
     const data = {
         Yz: Bot.lain,
         error: error,
         guild: Bot.lain.version,
         msg: content,
-        saveId: 'Lain-plugin',
-        _plugin: 'Lain-plugin',
-        tplFile: './plugins/Lain-plugin/resources/index.html',
+        saveId: type,
+        _plugin: type,
+        tplFile: `./plugins/Lain-plugin/resources/${type == "Lain-plugin" ? "index.html" : `${type}.html`}`,
     }
-    const msg = await puppeteer.screenshot(`Lain-plugin/Lain-plugin`, data)
+    const msg = await puppeteer.screenshot(`Lain-plugin/${type}`, data)
     return msg.file
 }
 

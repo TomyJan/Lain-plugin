@@ -40,12 +40,12 @@ export default new class message {
         if (isGroup) {
             const member = {
                 info: {
-                    group_id: `${e.self_id}:${e.group_id}`,
-                    user_id: `${e.self_id}:${e.user_id}`,
+                    group_id: `${e.self_id}-${e.group_id}`,
+                    user_id: `${e.self_id}-${e.user_id}`,
                     nickname: "",
                     last_sent_time: "",
                 },
-                group_id: `${e.self_id}:${e.group_id}`,
+                group_id: `${e.self_id}-${e.group_id}`,
                 is_admin: false,
                 is_owner: false,
                 /** 获取头像 */
@@ -54,11 +54,11 @@ export default new class message {
             }
 
             e.member = member
-            e.group_name = `${e.self_id}: ${e.group_id}`
+            e.group_name = `${e.self_id}-${e.group_id}`
 
             e.group = {
                 pickMember: (id) => {
-                    try { id = id.split(":")[1] } catch { }
+                    try { id = id.split("-")[1] } catch { }
                     return {
                         member,
                         getAvatarUrl: (size = 0, userId = id) => `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=${userId}`
@@ -103,7 +103,7 @@ export default new class message {
                     return ["test"]
                 },
                 getAvatarUrl: async (size = 0, userID = user_id) => {
-                    try { id = id.split(":")[1] } catch { }
+                    try { id = id.split("-")[1] } catch { }
                     return `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=${userID}`
                 }
             }
@@ -116,10 +116,10 @@ export default new class message {
 
         /** 添加适配器标识 */
         e.adapter = "QQBot"
-        e.user_id = `${e.self_id}:${e.user_id}`
-        e.group_id = `${e.self_id}:${e.group_id}`
-        e.author.id = `${e.self_id}:${e.author.id}`
-        e.sender.user_id = `${e.self_id}:${e.sender.user_id}`
+        e.user_id = `${e.self_id}-${e.user_id}`
+        e.group_id = `${e.self_id}-${e.group_id}`
+        e.author.id = `${e.self_id}-${e.author.id}`
+        e.sender.user_id = `${e.self_id}-${e.sender.user_id}`
         return e
     }
 
@@ -127,49 +127,20 @@ export default new class message {
     async message(e) {
         if (!Array.isArray(e)) e = [e]
         e = common.array(e)
-        let img = false
-        const image = []
         const message = []
         for (let i in e) {
             switch (typeof e[i]) {
                 case "string":
-                    for (let msg of await this.HandleURL(e[i])) {
-                        if (msg.type === "image") {
-                            if (!img) {
-                                img = true
-                                message.push(msg)
-                            } else {
-                                image.push(msg)
-                            }
-                        } else {
-                            message.push(msg)
-                        }
-                    }
+                    message.push(...await this.HandleURL(e[i]))
                     break
                 case "object":
                     try {
                         switch (e[i].type) {
                             case "image":
-                                if (!img) {
-                                    img = true
-                                    message.push(await this.Upload(e[i], "image"))
-                                } else {
-                                    image.push(await this.Upload(e[i], "image"))
-                                }
+                                message.push(await this.Upload(e[i], "image"))
                                 break
                             case "text":
-                                for (let msg of await this.HandleURL(e[i])) {
-                                    if (msg.type === "image") {
-                                        if (!img) {
-                                            img = true
-                                            message.push(msg)
-                                        } else {
-                                            image.push(msg)
-                                        }
-                                    } else {
-                                        message.push(msg)
-                                    }
-                                }
+                                message.push(...await this.HandleURL(e[i]))
                                 break
                             case "video":
                                 message.push(await this.Upload(e[i], "video"))
@@ -180,18 +151,7 @@ export default new class message {
                             case "at":
                                 break
                             case "forward":
-                                for (let msg of await this.HandleURL(e[i])) {
-                                    if (msg.type === "image") {
-                                        if (!img) {
-                                            img = true
-                                            message.push(msg)
-                                        } else {
-                                            image.push(msg)
-                                        }
-                                    } else {
-                                        message.push(msg)
-                                    }
-                                }
+                                message.push(...await this.HandleURL(e[i]))
                                 break
                             default:
                                 message.push(e[i])
@@ -204,15 +164,59 @@ export default new class message {
                 default:
                     message.push(e[i])
             }
-
         }
-        return { message, image }
+
+        return message
     }
 
     /** 快速回复 */
     async reply(e, msg) {
         let res
-        const { message, image } = await this.message(msg)
+        let message = await this.message(msg)
+
+        let html = ''
+        message.forEach(item => {
+            let containerContent = ''
+            switch (item.type) {
+                case 'image':
+                    if (item.file.startsWith('base64://')) {
+                        containerContent = `<img src="data:image/png;base64,${item.file.replace('base64://', '')}" />`
+                    } else {
+                        containerContent = `<img src="${item.file}" />`
+                    }
+                    break
+                case 'text':
+                case 'forward':
+                    containerContent = item.text.replace(/\n/g, '<br>')
+                    break
+                case 'at':
+                    containerContent = `@${item.qq || item.id}`
+                    break
+                case 'record':
+                    containerContent = `语音：${item.file}`
+                    break
+                case 'video':
+                    containerContent = `<video src="${item.file}"></video>`
+                    break
+                default:
+                    containerContent = JSON.stringify(item)
+            }
+
+            html += `
+        <div class="flex-container">
+            <img class="avatar" src="${Bot[e.self_id].avatar}" alt="头像" />
+            <div>
+                <div class="name">${Bot[e.self_id].nickname}</div>
+                <div class="container">${containerContent}</div>
+            </div>
+        </div>
+    `
+        })
+
+        await common.sleep(50)
+        const Uint8Array = await common.rendering(JSON.stringify(html), "", "message")
+        message = [await this.Upload({ type: "image", file: Uint8Array }, "image")]
+
         try {
             res = await e.sendMsg.call(e.data, message)
         } catch (error) {
@@ -221,18 +225,18 @@ export default new class message {
             res = await e.sendMsg.call(e.data, `发送消息失败：${error?.data || error?.message || error}`)
         }
 
-        /** 分片发送图片 */
-        if (image.length > 0) {
-            image.forEach(async i => {
-                try {
-                    res = await e.sendMsg.call(e.data, i)
-                } catch (error) {
-                    common.log(e.self_id, `发送消息失败：${error?.data || error?.message || error}`, "error")
-                    common.log(e.self_id, error, "debug")
-                    res = await e.sendMsg.call(e.data, `发送消息失败：${error?.data || error?.message || error}`)
-                }
-            })
-        }
+        // /** 分片发送图片 */
+        // if (image.length > 0) {
+        //     image.forEach(async i => {
+        //         try {
+        //             res = await e.sendMsg.call(e.data, i)
+        //         } catch (error) {
+        //             common.log(e.self_id, `发送消息失败：${error?.data || error?.message || error}`, "error")
+        //             common.log(e.self_id, error, "debug")
+        //             res = await e.sendMsg.call(e.data, `发送消息失败：${error?.data || error?.message || error}`)
+        //         }
+        //     })
+        // }
 
         return {
             seq: res?.group_code,
