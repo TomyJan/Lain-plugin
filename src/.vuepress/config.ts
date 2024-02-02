@@ -5,7 +5,7 @@ import theme from "./theme.js"
 import { searchProPlugin } from "vuepress-plugin-search-pro";
 
 export default defineUserConfig({
-  base: "/",
+  base: "/Lain-plugin/",
   port: 2960,
   lang: "zh-CN",
   title: "Lain-plugin",
