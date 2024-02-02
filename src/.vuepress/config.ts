@@ -5,7 +5,7 @@ import theme from "./theme.js"
 import { searchProPlugin } from "vuepress-plugin-search-pro";
 
 export default defineUserConfig({
-  base: "/Lain-plugin/",
+  base: "/",
   port: 2960,
   lang: "zh-CN",
   title: "Lain-plugin",
@@ -20,4 +20,7 @@ export default defineUserConfig({
       autoSuggestions: true
     }),
   ],
+  head: [
+    ['link', { rel: 'icon', href: '/favicon.ico' }]
+  ]
 })
