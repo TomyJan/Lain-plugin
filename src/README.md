@@ -4,7 +4,7 @@ home: true
 icon: home
 heroText: Lain-plugin
 tagline: 基于 Miao-Yunzai 的多适配器插件
-heroImage: https://cdn.jsdelivr.net/gh/Zyy955/imgs/img/202402020810533.png
+heroImage: /assets/image/hero.png
 actions:
   - text: 快速开始
     link: /docs/start
@@ -25,6 +25,9 @@ features:
     link: /docs
 footer: '&copy;2024 Lain-plugin'
 footerHtml: true
+# heroFullScreen: true
+bgImageStyle:
+  background-attachment: fixed
 ---
 
 ::: warning 温馨提示
