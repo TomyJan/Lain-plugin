@@ -1,0 +1,1 @@
+import{_ as n}from"./plugin-vue_export-helper-x3n3nnut.js";import{o as t,c as i,a as e}from"./app-e-kjfuGW.js";const o={},a=e("div",{class:"hint-container warning"},[e("p",{class:"hint-container-title"},"温馨提示"),e("p",null,"Lain-Plugin仅支持Miao-Yunzai")],-1),c=[a];function s(r,_){return t(),i("div",null,c)}const f=n(o,[["render",s],["__file","index.html.vue"]]);export{f as default};
