@@ -10,6 +10,13 @@ export default sidebar({
       children: "structure",
     },
     {
+      text: "基本标准",
+      icon: "book",
+      prefix: "standard/",
+      link: "standard/",
+      children: "structure",
+    },
+    {
       text: "适配器",
       icon: "book",
       prefix: "adapter/",
