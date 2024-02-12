@@ -34,7 +34,7 @@ export class adapter extends plugin {
           reg: /^#QQ(群|Bot|频道)(MD|markdown) ?(\d{9}:)?[01234]{1}$/i,
           fnc: 'type',
           permission: 'master'
-        },
+        }
       ]
     })
   }
@@ -257,8 +257,7 @@ export class adapter extends plugin {
       self_id = msg[0]
     } else {
       if (this.e?.adapter === 'QQBot') self_id = this.e.self_id
-      else 
-        return await this.reply('格式错误!', true, { at: true })
+      else { return await this.reply('格式错误!', true, { at: true }) }
     }
     if (cfg.value('token', self_id)) {
       let val = cfg.get('token')

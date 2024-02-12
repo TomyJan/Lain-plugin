@@ -1,18 +1,12 @@
 import { exec } from 'child_process'
 import fs from 'fs'
 import sizeOf from 'image-size'
-import lodash from 'lodash'
 import path from 'path'
-import moment from 'moment'
 import { encode as encodeSilk } from 'silk-wasm'
 import Yaml from 'yaml'
-import MiaoCfg from '../../../../lib/config/config.js'
-import loader from '../../../../lib/plugins/loader.js'
 import common from '../../lib/common/common.js'
 import Cfg from '../../lib/config/config.js'
 import Button from './plugins.js'
-
-lain.DAU = {}
 
 export default class adapterQQBot {
   /** 传入基本配置 */
@@ -69,34 +63,12 @@ export default class adapterQQBot {
       makeForwardMsg: async (data) => await common.makeForwardMsg(data),
       getGroupMemberInfo: (group_id, user_id) => Bot.getGroupMemberInfo(group_id, user_id)
     }
-    /** 加载缓存中的群列表 */
-    this.gmlList('gl')
-    /** 加载缓存中的好友列表 */
-    this.gmlList('fl')
+
     /** 保存id到adapter */
     if (!Bot.adapter.includes(String(this.id))) Bot.adapter.push(String(this.id))
-    /** 初始化dau统计 */
-    if (Cfg.Other.QQBotdau) lain.DAU[this.id] = await this.getDAU()
     /** 重启 */
     await common.init('Lain:restart:QQBot')
     return `QQBot：[${username}(${this.id})] 连接成功!`
-  }
-
-  /** 加载缓存中的群、好友列表 */
-  async gmlList (type = 'gl') {
-    try {
-      const List = await redis.keys(`lain:${type}:${this.id}:*`)
-      List.forEach(async i => {
-        const id = await redis.get(i)
-        const info = JSON.parse(id)
-        info.uin = this.id
-        if (type === 'gl') {
-          Bot[this.id].gl.set(id, info)
-        } else {
-          Bot[this.id].fl.set(id, info)
-        }
-      })
-    } catch { }
   }
 
   /** 群对象 */
@@ -173,30 +145,10 @@ export default class adapterQQBot {
     e.sendMsg = data.reply
     e.raw_message = e.raw_message.trim()
 
-    /** 过滤事件 */
-    let priority = true
-    let raw_message = e.raw_message
-    if (e.group_id && raw_message) {
-      raw_message = this.hasAlias(raw_message, e, false)
-      raw_message = raw_message.replace(/^#?(\*|星铁|星轨|穹轨|星穹|崩铁|星穹铁道|崩坏星穹铁道|铁道)+/, '#星铁')
-    }
-
-    for (let v of loader.priority) {
-      let p = new v.class(e)
-      p.e = e
-      /** 判断是否启用功能 */
-      if (!this.checkDisable(e, p, raw_message)) {
-        priority = false
-        return false
-      }
-    }
-
-    if (!priority) return false
-
     if (Bot[this.id].config.other.Prefix) {
       e.message.some(msg => {
         if (msg.type === 'text') {
-          msg.text = this.hasAlias(msg.text, e)
+          msg.text = msg.text.trim().replace(/^\//, '#')
           return true
         }
         return false
@@ -205,24 +157,11 @@ export default class adapterQQBot {
 
     /** 构建快速回复消息 */
     e.reply = async (msg, quote) => await this.sendReplyMsg(e, msg, quote)
-    /** 快速撤回 */
-    e.recall = async () => { }
     /** 将收到的消息转为字符串 */
     e.toString = () => e.raw_message
-    /** 获取对应用户头像 */
-    e.getAvatarUrl = (size = 0, id = data.user_id) => `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=${id}`
 
     /** 构建场景对应的方法 */
     if (isGroup) {
-      try {
-        const groupId = `${this.id}-${e.group_id}`
-        if (!Bot[e.self_id].gl.get(groupId)) Bot[e.self_id].gl.set(groupId, { group_id: groupId })
-        /** 缓存群列表 */
-        if (await redis.get(`lain:gl:${e.self_id}:${groupId}`)) redis.set(`lain:gl:${e.self_id}:${groupId}`, JSON.stringify({ group_id: groupId, uin: this.id }))
-        /** 防倒卖崽 */
-        if (Bot.lain.cfg.QQBotTips) await this.QQBotTips(data, groupId)
-      } catch { }
-
       e.member = this.member(e.group_id, e.user_id)
       e.group_name = `${this.id}-${e.group_id}`
       e.group = this.pickGroup(e.group_id)
@@ -239,74 +178,8 @@ export default class adapterQQBot {
     /** 为什么本体会从群名片拿uid啊? */ /** 自动绑定，神奇吧 */
     e.sender.card = e.sender.user_openid
     e.sender.nickname = e.user_id
-
-    /** 缓存好友列表 */
-    if (!Bot[e.self_id].fl.get(e.user_id)) Bot[e.self_id].fl.set(e.user_id, { user_id: e.user_id })
-    if (await redis.get(`lain:fl:${e.self_id}:${e.user_id}`)) redis.set(`lain:fl:${e.self_id}:${e.user_id}`, JSON.stringify({ user_id: e.user_id }))
-
-    /** 保存消息次数 */
-    try { common.recvMsg(e.self_id, e.adapter) } catch { }
     common.info(this.id, `<群:${e.group_id}><用户:${e.user_id}> -> ${this.messageLog(e.message)}`)
-    /** dau统计 */
-    this.msg_count(data)
     return e
-  }
-
-  /** 判断是否启用功能 */
-  checkDisable (e, p, raw_message) {
-    let groupCfg = Cfg.getGroup(e.self_id)
-    /** 白名单 */
-    if (!lodash.isEmpty(groupCfg.enable)) {
-      if (groupCfg.enable.includes(p.name)) {
-        /** 判断当前传入的值是否符合正则 */
-        for (let i of p.rule) {
-          i = new RegExp(i.reg)
-          if (i.test(raw_message.trim())) {
-            return true
-          }
-        }
-        logger.mark(`[Lain-plugin][${p.name}]功能已禁用`)
-        return false
-      }
-    }
-
-    if (!lodash.isEmpty(groupCfg.disable)) {
-      if (groupCfg.disable.includes(p.name)) {
-        /** 判断当前传入的值是否符合正则 */
-        for (let i of p.rule) {
-          i = new RegExp(i.reg)
-          if (i.test(raw_message.trim())) {
-            logger.mark(`[Lain-plugin][${p.name}]功能已禁用`)
-            return false
-          }
-        }
-      }
-    }
-    return true
-  }
-
-  /** 前缀处理 */
-  hasAlias (text, e, hasAlias = true) {
-    text = text.trim()
-    if (Bot[this.id].config.other.Prefix && text.startsWith('/')) {
-      return text.replace(/^\//, '#')
-    }
-    /** 兼容前缀 */
-    let groupCfg = MiaoCfg.getGroup(e.group_id)
-    let alias = groupCfg.botAlias
-    if (!Array.isArray(alias)) {
-      alias = [alias]
-    }
-    for (let name of alias) {
-      if (text.startsWith(name)) {
-        /** 先去掉前缀 再 / => # */
-        text = lodash.trimStart(text, name)
-        if (Bot[this.id].config.other.Prefix) text = text.replace(/^\//, '#')
-        if (hasAlias) return name + text
-        return text
-      }
-    }
-    return text
   }
 
   /** 日志 */
@@ -328,23 +201,6 @@ export default class adapterQQBot {
       }
     })
     return logMessage.join('')
-  }
-
-  /** 小兔崽子 */
-  async QQBotTips (data, groupId) {
-    /** 首次进群后，推送防司马崽声明~ */
-    if (!await redis.get(`lain:QQBot:tips:${groupId}`)) {
-      const msg = []
-      const name = `「${Bot[this.id].nickname}」`
-      msg.push('温馨提示：')
-      msg.push(`感谢使用${name}，本Bot完全开源免费~\n`)
-      msg.push('请各位尊重Yunzai本体及其插件开发者们的努力~')
-      msg.push('如果本Bot是付费入群,请立刻退款举报！！！\n')
-      msg.push('来自：Lain-plugin防倒卖崽提示，本提示仅在首次入群后触发~')
-      if (Bot.lain.cfg.QQBotGroupId) msg.push(`\n如有疑问，请添加${name}官方群: ${Bot.lain.cfg.QQBotGroupId}~`)
-      data.reply(msg.join('\n'))
-      redis.set(`lain:QQBot:tips:${groupId}`, JSON.stringify({ group_id: groupId }))
-    }
   }
 
   /** ffmpeg转码 转为pcm */
@@ -436,10 +292,6 @@ export default class adapterQQBot {
           break
       }
     }
-
-    /** 消息次数 */
-    if (text.length) try { common.MsgTotal(this.id, 'QQBot') } catch { }
-    if (image.length) try { common.MsgTotal(this.id, 'QQBot', 'image') } catch { }
 
     /** 浅拷贝一次消息为普通消息，用于模板发送失败重发 */
     if (e.bot.config.markdown.type) {
@@ -767,7 +619,6 @@ export default class adapterQQBot {
       if (reply) i = Array.isArray(i) ? [...i, reply] : [i, reply]
       this.sdk.sendPrivateMessage(userId, i, this.sdk)
       logger.debug('发送主动好友消息：', JSON.stringify(i))
-      this.send_count()
     })
   }
 
@@ -788,7 +639,6 @@ export default class adapterQQBot {
     Pieces.forEach(i => {
       if (reply) i = Array.isArray(i) ? [...i, reply] : [i, reply]
       this.sdk.sendGroupMessage(groupID, i, this.sdk)
-      this.send_count()
       logger.debug('发送主动群消息：', JSON.stringify(i))
     })
   }
@@ -827,7 +677,6 @@ export default class adapterQQBot {
   /** 发送消息 */
   async sendMsg (e, msg) {
     try {
-      this.send_count()
       logger.debug('发送回复消息：', JSON.stringify(msg))
       return { ok: true, data: await e.data.reply(msg) }
     } catch (err) {
@@ -866,78 +715,6 @@ export default class adapterQQBot {
     })
     message.unshift({ type: 'text', text: msg })
     return message
-  }
-
-  /** 获取日期 */
-  getNowDate () {
-    const date = new Date()
-    const dtf = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' })
-    const [{ value: month }, , { value: day }, , { value: year }] = dtf.formatToParts(date)
-    return `${year}-${month}-${day}`
-  }
-
-  /** 初始化 */
-  async getDAU () {
-    const time = this.getNowDate()
-    const msg_count = (await redis.get(`QQBotDAU:msg_count:${this.id}`)) || 0
-    const send_count = (await redis.get(`QQBotDAU:send_count:${this.id}`)) || 0
-    let data = await redis.get(`QQBotDAU:${this.id}`)
-    if (data) {
-      data = JSON.parse(data)
-      data.msg_count = Number(msg_count)
-      data.send_count = Number(send_count)
-      data.time = time
-      return data
-    } else {
-      return {
-        user_count: 0, // 上行消息人数
-        group_count: 0, // 上行消息群数
-        msg_count, // 上行消息量
-        send_count, // 下行消息量
-        user_cache: {},
-        group_cache: {},
-        time
-      }
-    }
-  }
-
-  /** dau统计 */
-  async dau () {
-    if (!Cfg.Other.QQBotdau) return
-    lain.DAU[this.id].send_count++
-    const time = moment(Date.now()).add(1, 'days').format('YYYY-MM-DD 00:00:00')
-    const EX = Math.round((new Date(time).getTime() - new Date().getTime()) / 1000)
-    redis.set(`QQBotDAU:send_count:${this.id}`, lain.DAU[this.id].send_count * 1, { EX })
-  }
-
-  /** 下行消息量 */
-  send_count () {
-    if (!Cfg.Other.QQBotdau) return
-    lain.DAU[this.id].send_count++
-    const time = moment(Date.now()).add(1, 'days').format('YYYY-MM-DD 00:00:00')
-    const EX = Math.round((new Date(time).getTime() - new Date().getTime()) / 1000)
-    redis.set(`QQBotDAU:send_count:${this.id}`, lain.DAU[this.id].send_count * 1, { EX })
-  }
-
-  /** 上行消息量 */
-  msg_count (data) {
-    if (!Cfg.Other.QQBotdau) return
-    let needSetRedis = false
-    lain.DAU[this.id].msg_count++
-    if (data.group_id && !lain.DAU[this.id].group_cache[data.group_id]) {
-      lain.DAU[this.id].group_cache[data.group_id] = 1
-      lain.DAU[this.id].group_count++
-      needSetRedis = true
-    }
-    if (data.user_id && !lain.DAU[this.id].user_cache[data.user_id]) {
-      lain.DAU[this.id].user_cache[data.user_id] = 1
-      lain.DAU[this.id].user_count++
-      needSetRedis = true
-    }
-    const time = moment(Date.now()).add(1, 'days').format('YYYY-MM-DD 00:00:00')
-    const EX = Math.round((new Date(time).getTime() - new Date().getTime()) / 1000)
-    if (needSetRedis) redis.set(`QQBotDAU:${this.id}`, JSON.stringify(lain.DAU[this.id]), { EX })
-    redis.set(`QQBotDAU:msg_count:${this.id}`, lain.DAU[this.id].msg_count * 1, { EX })
   }
 }
 

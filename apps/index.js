@@ -1,8 +1,6 @@
 import YamlParse from '../model/YamlHandler.js'
 import { execSync } from 'child_process'
 import { update as Update } from '../../other/update.js'
-import { xiaofei_music } from '../adapter/shamrock/xiaofei/music.js'
-import { xiaofei_weather } from '../adapter/shamrock/xiaofei/weather.js'
 
 export class Lain extends plugin {
   constructor () {
@@ -69,15 +67,4 @@ export class Lain extends plugin {
     Bot[Bot.lain.wc.uin].nickname = msg
     return await e.reply(`修改成功，新名称为：${msg}`, false, { at: true })
   }
-
-  /** shamrock重载资源 */
-  // async loadRes (e) {
-  //   await e.reply('开始重载，请稍等...', true)
-  //   let res = (await import('../adapter/shamrock/bot.js')).default
-  //   res = new res(e.self_id)
-  //   const msg = await res.LoadList()
-  //   return await e.reply(msg, true)
-  // }
 }
-
-export { xiaofei_music, xiaofei_weather }

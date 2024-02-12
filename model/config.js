@@ -32,50 +32,11 @@ Bot.lain = {
         version: packYZ.version
       }
     },
-    QQGuild: {
-      /** 插件 */
-      version: {
-        id: '私域',
-        name: 'QQ频道',
-        version: adapter.QQGuild
-      },
-      /** 依赖包 */
-      apk: {
-        display: 'qq-group-bot',
-        version: dependencies['qq-group-bot'].replace('^', '')
-      }
-    },
-    ComWeChat: {
-      /** 插件 */
-      version: {
-        id: 'PC',
-        name: '微信',
-        version: adapter.ComWeChat
-      },
-      /** 依赖包 */
-      apk: {
-        display: 'CWeChatRobot',
-        version: adapter.CWeChatRobot.replace('^', '')
-      }
-    },
     stdin: {
       /** 插件 */
       version: {
         id: 'stdin',
         name: '标准输入',
-        version: adapter.stdin
-      },
-      /** 依赖包 */
-      apk: {
-        display: '',
-        version: ''
-      }
-    },
-    Shamrock: {
-      /** 插件 */
-      version: {
-        id: 'Shamrock',
-        name: '三叶草',
         version: adapter.stdin
       },
       /** 依赖包 */
@@ -95,19 +56,6 @@ Bot.lain = {
       apk: {
         display: 'qq-group-bot',
         version: dependencies['qq-group-bot'].replace('^', '')
-      }
-    },
-    WeXin: {
-      /** 插件 */
-      version: {
-        id: 'WeXin',
-        name: 'WeXin',
-        version: adapter.WeXin
-      },
-      /** 依赖包 */
-      apk: {
-        display: 'wechat4u',
-        version: dependencies.wechat4u.replace('^', '')
       }
     }
   }

@@ -1,11 +1,8 @@
 import express from 'express'
 import fs from 'fs'
 import { createServer } from 'http'
-import fetch from 'node-fetch'
 import common from '../lib/common/common.js'
 import Cfg from '../lib/config/config.js'
-import ComWeChat from './WeChat/index.js'
-import shamrock from './shamrock/index.js'
 
 class WebSocket {
   constructor () {
@@ -84,46 +81,14 @@ class WebSocket {
       }
     })
 
-    /** 将WebSocket服务器实例与HTTP服务器关联 */
-    this.Server.on('upgrade', (request, socket, head) => {
-      const pathname = request.url
-      if (pathname === this.path) {
-        shamrock.handleUpgrade(request, socket, head, (socket) => {
-          shamrock.emit('connection', socket, request)
-        })
-      } else if (pathname === this.path_wx) {
-        ComWeChat.handleUpgrade(request, socket, head, (socket) => {
-          ComWeChat.emit('connection', socket, request)
-        })
-      } else {
-        logger.error('', `未知连接，已拒绝连接：${request.url}`)
-        socket.destroy()
-      }
-    })
-
     this.Server.listen(this.port, async () => {
       common.info('Lain-plugin', `HTTP服务器：${logger.blue(`http://localhost:${this.port}`)}`)
-      common.info('Lain-plugin', `QQBotApi：${logger.blue(`http://localhost:${this.port}/api/QQBot`)}`)
-      common.info('Lain-plugin', `本地 Shamrock 连接地址：${logger.blue(`ws://localhost:${this.port}${this.path}`)}`)
-      common.info('Lain-plugin', `本地 ComWeChat 连接地址：${logger.blue(`ws://localhost:${this.port}${this.path_wx}`)}`)
     })
 
     /** 捕获错误 */
     this.Server.on('error', async (error) => {
       if (error.code === 'EADDRINUSE') {
         logger.error(`[Lain-plugin] 端口${this.port}已被占用，正在尝试解除`)
-        try {
-          const response = await fetch(`http://localhost:${this.port}/api/close-server`)
-          if (response.ok) {
-            await common.sleep(5000)
-            common.info('Lain-plugin', `本地 Shamrock 连接地址：${logger.blue(`ws://localhost:${this.port}${this.path}`)}`)
-            common.info('Lain-plugin', `本地 ComWeChat 连接地址：${logger.blue(`ws://localhost:${this.port}${this.path_wx}`)}`)
-          } else {
-            throw new Error(`HTTP请求失败，状态码: ${response.status}`)
-          }
-        } catch (error) {
-          logger.error(error)
-        }
       } else {
         logger.error(error)
       }
