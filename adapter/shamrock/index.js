@@ -1180,8 +1180,25 @@ class Shamrock {
  * @param {boolean} quote - 是否引用回复
  */
   async sendReplyMsg (e, id, msg, quote) {
-    let { message, raw_message, node } = await this.getShamrock(msg)
+    let { message, raw_message, node, needRes } = await this.getShamrock(msg)
 
+    if (needRes) {
+      const uploadRes = await api.send_private_forward_msg(this.id, this.id, [{
+        type: 'node',
+        data: {
+          content: message
+        }
+      }])
+      if (uploadRes.forward_id) {
+        if (e.isGroup) {
+          return await api.send_msg_by_res_id(this.id, uploadRes.forward_id, id)
+        } else {
+          return await api.send_msg_by_res_id(this.id, uploadRes.forward_id, id, 'private')
+        }
+      } else {
+        return uploadRes
+      }
+    }
     if (quote) {
       message.unshift({ type: 'reply', data: { id: e.message_id } })
       raw_message = '[回复]' + raw_message
@@ -1197,7 +1214,15 @@ class Shamrock {
    * @param {string|object|array} msg - 消息内容
    */
   async sendFriendMsg (user_id, msg) {
-    const { message, raw_message, node } = await this.getShamrock(msg)
+    const { message, raw_message, node, needRes } = await this.getShamrock(msg)
+    if (needRes) {
+      const uploadRes = await api.send_private_forward_msg(this.id, this.id, message)
+      if (uploadRes.forward_id) {
+        return await api.send_msg_by_res_id(this.id, uploadRes.forward_id, user_id, 'private')
+      } else {
+        return uploadRes
+      }
+    }
     return await api.send_private_msg(this.id, user_id, message, raw_message, node)
   }
 
@@ -1207,7 +1232,15 @@ class Shamrock {
    * @param {string|object|array} msg - 消息内容
    */
   async sendGroupMsg (group_id, msg) {
-    const { message, raw_message, node } = await this.getShamrock(msg)
+    const { message, raw_message, node, needRes } = await this.getShamrock(msg)
+    if (needRes) {
+      const uploadRes = await api.send_private_forward_msg(this.id, this.id, message)
+      if (uploadRes.forward_id) {
+        return await api.send_msg_by_res_id(this.id, uploadRes.forward_id, group_id)
+      } else {
+        return uploadRes
+      }
+    }
     return await api.send_group_msg(this.id, group_id, message, raw_message, node)
   }
 
@@ -1226,7 +1259,7 @@ class Shamrock {
 
     /** chatgpt-plugin */
     if (data?.[0]?.type === 'xml') data = data?.[0].msg
-
+    let needRes = false
     /** 转为Shamrock标准 message */
     for (let i of data) {
       if (i?.node) node = true
@@ -1353,6 +1386,22 @@ class Shamrock {
           message.push({ type: 'node', data: { ...i.data } })
           raw_message.push(`<转发消息:${i.data.id}>`)
           break
+        case 'markdown': {
+          needRes = true
+          message.push({ type: 'markdown', data: { content: i.content } })
+          raw_message.push(`<markdown:${i.content}>`)
+          break
+        }
+        case 'button': {
+          needRes = true
+          let buttonData = {
+            appid: i.appid,
+            buttons: i.content.rows.map(row => row.buttons)
+          }
+          message.push({ type: 'button', data: buttonData })
+          raw_message.push(`<button:${i.content}>`)
+          break
+        }
         default:
           // 为了兼容更多字段，不再进行序列化，风险是有可能未知字段导致Shamrock崩溃
           message.push({ type: i.type, data: { ...i.data } })
@@ -1364,9 +1413,12 @@ class Shamrock {
     raw_message = raw_message.join('')
 
     /** 合并转发 */
-    if (node) raw_message = `[转发消息:${JSON.stringify(message)}]`
+    if (node) {
+      raw_message = `[转发消息:${JSON.stringify(message)}]`
+      needRes = false
+    }
 
-    return { message, raw_message, node }
+    return { message, raw_message, node, needRes }
   }
 }
 

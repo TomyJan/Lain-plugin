@@ -643,7 +643,8 @@ let api = {
   * 发送群聊合并转发
   * @param {string} id - 机器人QQ 通过e.bot、Bot调用无需传入
   * @param {number} group_id - 发送到的目标群号
-  * @param {foward message[]} messages  - 合并转发消息集
+  * @param {object[]} messages  - 合并转发消息集
+   * @return {Promise<{message_id: string, forward_id: string}>}
   */
   async send_group_forward_msg (id, group_id, messages) {
     const params = { group_id, messages }
@@ -745,6 +746,18 @@ let api = {
       seq: data.message_id,
       rand: 1
     }
+  },
+
+  /**
+   * 通过resId发送消息，试验性接口
+   * @param {string} id - 机器人QQ 通过e.bot、Bot调用无需传入
+   * @param {string} resId - resId
+   * @param {string|number} peerId - 目标群号或qq
+   * @param {'group'|'private'} type - 类型
+   */
+  async send_msg_by_res_id (id, resId, peerId, type = 'group') {
+    const params = { peer_id: peerId, res_id: resId, message_type: type }
+    return await this.SendApi(id, 'send_msg_by_resid', params)
   },
 
   /**
