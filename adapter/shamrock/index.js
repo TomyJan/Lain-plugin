@@ -8,6 +8,7 @@ import { faceMap, pokeMap } from '../../model/shamrock/face.js'
 import Button from '../QQBot/plugins.js'
 import sizeOf from 'image-size'
 
+
 class Shamrock {
   constructor (bot, request) {
     /** 存一下 */
@@ -1227,6 +1228,16 @@ class Shamrock {
     const group_id = Math.floor(Math.random() * 10000) + 10000
     let messages = { type: 'node', data: { content: [{ type: 'markdown', data: { content } }] } }
 
+    common.array(msg).filter(m => m.type === 'button').forEach(button => {
+      // 默认收到的是icqq的button格式
+      // segment.button()
+      let buttonData = {
+        appid: button.content.appid,
+        buttons: button.content.rows.map(row => row.buttons)
+      }
+      messages.data.content.push({ type: 'button', data: buttonData })
+    })
+
     /** 构建一个普通e给按钮用 */
     if (!e) {
       e = { bot: Bot[this.id], message: common.array(msg) }
@@ -1239,7 +1250,7 @@ class Shamrock {
       if (button && button?.length) messages.data.content.push(...button)
     }
     messages = [messages]
-    const node = await api.send_group_forward_msg(this.id, group_id, messages )
+    const node = await api.send_forward_msg(this.id, 'group', group_id, 0, messages, true)
     return node.forward_id
   }
 

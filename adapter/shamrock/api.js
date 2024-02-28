@@ -640,6 +640,20 @@ let api = {
   },
 
   /**
+   * 发送合并转发
+   * @param {string} id - 机器人QQ 通过e.bot、Bot调用无需传入
+   * @param {'group'|'private'|'less'|'guild'} message_type - 类型
+   * @param {number} group_id - 发送到的目标群号
+   * @param {number} user_id - 发送到的目标qq
+   * @param {object[]} messages  - 合并转发消息集
+   * @param {boolean} no_send - 只上传不发送
+   */
+  async send_forward_msg (id, message_type, group_id, user_id, messages, no_send = false) {
+    const params = { group_id, messages, no_send }
+    return await this.SendApi(id, 'send_forward_msg', params)
+  },
+
+  /**
   * 发送群聊合并转发
   * @param {string} id - 机器人QQ 通过e.bot、Bot调用无需传入
   * @param {number} group_id - 发送到的目标群号
@@ -784,7 +798,7 @@ let api = {
     Bot[id].ws.send(log)
 
     /** 等待响应 */
-    for (let i = 0; i < 1200; i++) {
+    for (let i = 0; i < 80; i++) {
       const data = lain.echo[echo]
       if (data) {
         delete lain.echo[echo]
