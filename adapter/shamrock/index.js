@@ -1188,7 +1188,7 @@ class Shamrock {
   async sendReplyMsg (e, id, msg, quote) {
     let { message, raw_message, content, node } = await this.getShamrock(msg)
 
-    if (quote) {
+    if (quote && !content) {
       message.unshift({ type: 'reply', data: { id: e.message_id } })
       raw_message = '[回复]' + raw_message
     }
