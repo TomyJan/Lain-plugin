@@ -1205,8 +1205,9 @@ class Shamrock {
    * @param {string|object|array} msg - 消息内容
    */
   async sendFriendMsg (user_id, msg) {
-    const { message, raw_message, content, node } = await this.getShamrock(msg)
-    return await api.send_private_msg(this.id, user_id, message, raw_message, node)
+    let { message, raw_message, content, node } = await this.getShamrock(msg)
+    if (content) content = await this.sendMarkdown(content, msg)
+    return await api.send_private_msg(this.id, user_id, message, raw_message, node, content)
   }
 
   /**
@@ -1215,8 +1216,9 @@ class Shamrock {
    * @param {string|object|array} msg - 消息内容
    */
   async sendGroupMsg (group_id, msg) {
-    const { message, raw_message, content, node } = await this.getShamrock(msg)
-    return await api.send_group_msg(this.id, group_id, message, raw_message, node)
+    let { message, raw_message, content, node } = await this.getShamrock(msg)
+    if (content) content = await this.sendMarkdown(content, msg)
+    return await api.send_group_msg(this.id, group_id, message, raw_message, node, content)
   }
 
   /** 发送Markdown */
@@ -1237,7 +1239,7 @@ class Shamrock {
       if (button && button?.length) messages.data.content.push(...button)
     }
     messages = [messages]
-    const node = await Bot[2724816750].sendApi('send_group_forward_msg', { group_id, messages })
+    const node = await api.send_group_forward_msg(this.id, group_id, messages )
     return node.forward_id
   }
 
