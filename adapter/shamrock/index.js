@@ -1229,7 +1229,7 @@ class Shamrock {
     let messages = { type: 'node', data: { content: [{ type: 'markdown', data: { content } }] } }
 
     common.array(msg).filter(m => m.type === 'button').forEach(button => {
-      if (!button.content) {
+      if (!button.content?.rows) {
         return
       }
       // 默认收到的是icqq的button格式
