@@ -900,7 +900,7 @@ class Shamrock {
     /** 快速回复 */
     e.reply = async (msg, quote) => await this.sendReplyMsg(e, group_id || user_id, msg, quote)
     /** 获取对应用户头像 */
-    e.getAvatarUrl = (size = 0) => `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=${this.id}`
+    e.getAvatarUrl = (size = 0) => `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=${user_id}`
 
     /** 添加适配器标识 */
     e.adapter = 'shamrock'
@@ -1253,8 +1253,8 @@ class Shamrock {
       if (button && button?.length) messages.data.content.push(...button)
     }
     messages = [messages]
-    const node = await api.send_forward_msg(this.id, 'group', group_id, 0, messages, true)
-    return node.forward_id
+    const node = await api.upload_multi_message(this.id, 'group', group_id, 0, messages, true)
+    return node.res_id
   }
 
   /** 按钮添加 */
