@@ -1235,8 +1235,7 @@ class Shamrock {
       // 默认收到的是icqq的button格式
       // segment.button()
       let buttonData = {
-        appid: button.content?.appid,
-        buttons: button.content?.rows.map(row => row.buttons)
+        rows: button.content?.rows
       }
       messages.data.content.push({ type: 'button', data: buttonData })
     })
@@ -1271,14 +1270,17 @@ class Shamrock {
             // if (button) return Array.from(button)
             if (button) {
               if (!Array.isArray(button)) button = [button]
+              const rows = []
               button.forEach(item => {
-                message.push({
-                  type: 'button',
-                  data: {
-                    appid: 1,
-                    buttons: [item.buttons]
-                  }
+                rows.push({
+                  buttons: item.buttons
                 })
+              })
+              message.push({
+                type: 'button',
+                data: {
+                  rows
+                }
               })
               return message
             }

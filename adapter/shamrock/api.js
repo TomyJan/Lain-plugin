@@ -653,7 +653,15 @@ let api = {
     return await this.SendApi(id, 'send_forward_msg', params)
   },
 
-  async upload_multi_message (id, message_type, group_id, user_id, messages, no_send = false) {
+  /**
+   * 上传合并转发
+   * @param {string} id - 机器人QQ 通过e.bot、Bot调用无需传入
+   * @param {'group'|'private'|'less'|'guild'} message_type - 类型
+   * @param {number} group_id - 发送到的目标群号
+   * @param {number} user_id - 发送到的目标qq
+   * @param {object[]} messages  - 合并转发消息集
+   */
+  async upload_multi_message (id, message_type, group_id, user_id, messages) {
     const params = { group_id, messages }
     return await this.SendApi(id, 'upload_multi_message', params)
   },
