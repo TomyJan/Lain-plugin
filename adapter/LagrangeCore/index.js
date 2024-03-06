@@ -1195,7 +1195,7 @@ class LagrangeCore {
 
     if (content) content = await this.sendMarkdown(content, msg, e)
 
-    if (e.isGroup) return await api.send_group_msg(this.id, id, message, raw_message, node)
+    if (e.isGroup) return await api.send_group_msg(this.id, id, message, raw_message, node, content)
     return await api.send_private_msg(this.id, id, message, raw_message, node, content)
   }
 
