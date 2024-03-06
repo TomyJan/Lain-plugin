@@ -1523,8 +1523,8 @@ class Shamrock {
             content += `![图片 #${width} #${height}] (${url})`
             raw_message.push(`<图片:${url}>`)
           } catch (err) {
-            message.push({ type: 'text', data: { text: JSON.stringify(err) } })
-            raw_message.push(JSON.stringify(err))
+            message.push({ type: 'text', data: { text: err.message } })
+            raw_message.push(err.message)
           }
           break
         case 'poke':

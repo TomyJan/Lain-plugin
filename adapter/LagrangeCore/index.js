@@ -4,6 +4,7 @@ import path from 'path'
 import { WebSocketServer } from 'ws'
 import common from '../../lib/common/common.js'
 import { faceMap, pokeMap } from '../../model/shamrock/face.js'
+import Button from '../QQBot/plugins.js'
 import api from './api.js'
 
 class LagrangeCore {
@@ -1185,15 +1186,17 @@ class LagrangeCore {
  * @param {boolean} quote - 是否引用回复
  */
   async sendReplyMsg (e, id, msg, quote) {
-    let { message, raw_message, node } = await this.getLagrangeCore(msg)
+    let { message, raw_message, content, node } = await this.getLagrangeCore(msg)
 
-    if (quote) {
+    if (quote && !content) {
       message.unshift({ type: 'reply', data: { id: String(e.message_id) } })
       raw_message = '[回复]' + raw_message
     }
 
+    if (content) content = await this.sendMarkdown(content, msg, e)
+
     if (e.isGroup) return await api.send_group_msg(this.id, id, message, raw_message, node)
-    return await api.send_private_msg(this.id, id, message, raw_message, node)
+    return await api.send_private_msg(this.id, id, message, raw_message, node, content)
   }
 
   /**
@@ -1202,8 +1205,9 @@ class LagrangeCore {
    * @param {string|object|array} msg - 消息内容
    */
   async sendFriendMsg (user_id, msg) {
-    const { message, raw_message, node } = await this.getLagrangeCore(msg)
-    return await api.send_private_msg(this.id, user_id, message, raw_message, node)
+    let { message, raw_message, content, node } = await this.getLagrangeCore(msg)
+    if (content) content = await this.sendMarkdown(content, msg)
+    return await api.send_private_msg(this.id, user_id, message, raw_message, node, content)
   }
 
   /**
@@ -1212,15 +1216,105 @@ class LagrangeCore {
    * @param {string|object|array} msg - 消息内容
    */
   async sendGroupMsg (group_id, msg) {
-    const { message, raw_message, node } = await this.getLagrangeCore(msg)
-    return await api.send_group_msg(this.id, group_id, message, raw_message, node)
+    let { message, raw_message, content, node } = await this.getLagrangeCore(msg)
+    if (content) content = await this.sendMarkdown(content, msg)
+    return await api.send_group_msg(this.id, group_id, message, raw_message, node, content)
+  }
+
+  /** 发送Markdown */
+  async sendMarkdown (content, msg, e) {
+    /** 随机生成1-10000 */
+    const group_id = Math.floor(Math.random() * 10000) + 10000
+    let messages =
+      {
+        type: 'node',
+        data: {
+          name: '小助手',
+          uin: '2854196310',
+          content: [
+            {
+              type: 'markdown',
+              // 迷惑？？
+              data: { content: JSON.stringify({ content }) }
+            }
+          ]
+        }
+      }
+
+    common.array(msg).filter(m => m.type === 'button').forEach(button => {
+      if (!button.content?.rows) {
+        return
+      }
+      // 默认收到的是icqq的button格式
+      // segment.button()
+      let buttonData = {
+        rows: button.content?.rows
+      }
+      messages.data.content.push({ type: 'keyboard', data: { content: buttonData } })
+    })
+
+    /** 构建一个普通e给按钮用 */
+    if (!e) {
+      e = { bot: Bot[this.id], message: common.array(msg) }
+      e.message.forEach(i => { if (i.type === 'text') e.msg = (e.msg || '') + (i.text || '').trim() })
+    }
+
+    /** 按钮 */
+    if (Button) {
+      const button = await this.button(e)
+      if (button && button?.length) {
+        messages.data.content.push(...button)
+      }
+    }
+    messages = [messages]
+    // 和文档说的不一样啊
+    const resid = await api.send_forward_msg(this.id, group_id, messages)
+    return resid
+  }
+
+  /** 按钮添加 */
+  async button (e) {
+    try {
+      for (let p of Button) {
+        for (let v of p.plugin.rule) {
+          const regExp = new RegExp(v.reg)
+          if (regExp.test(e.msg)) {
+            p.e = e
+            let button = await p[v.fnc](e)
+            const message = []
+            /** 无返回不添加 */
+            // if (button) return Array.from(button)
+            if (button) {
+              if (!Array.isArray(button)) button = [button]
+              const rows = []
+              button.forEach(item => {
+                rows.push({
+                  buttons: item.buttons
+                })
+              })
+              message.push({
+                type: 'keyboard',
+                data: {
+                  content: { rows }
+                }
+              })
+              return message
+            }
+            return false
+          }
+        }
+      }
+    } catch (error) {
+      common.error('Lain-plugin', error)
+      return false
+    }
   }
 
   /**
    * 转换message为LagrangeCore格式
    * @param {string|Array|object} data - 消息内容
    */
-  async getLagrangeCore (data) {
+  async getLagrangeCore (data, Markdown = true) {
     let node = data?.test || false
     /** 标准化消息内容 */
     data = common.array(data)
@@ -1230,7 +1324,12 @@ class LagrangeCore {
     let raw_message = []
 
     /** chatgpt-plugin */
-    if (data?.[0]?.type === 'xml') data = data?.[0].msg
+    if (data?.[0]?.type === 'xml') {
+      data = data?.[0].message
+    }
+
+    /** 转为全局Markdown */
+    if (Markdown) return await this.Markdown(data)
 
     /** 转为LagrangeCore标准 message */
     for (let i of data) {
@@ -1353,6 +1452,10 @@ class LagrangeCore {
           raw_message.push(`<转发消息:${i.id}>`)
           break
         case 'node':
+          node = true
+          message.push({ type: 'node', data: { ...i.data } })
+          raw_message.push(`<转发消息:${i.data.id}>`)
+          break
         default:
           // 为了兼容更多字段，不再进行序列化，风险是有可能未知字段导致LagrangeCore崩溃
           message.push({ type: i.type, data: { ...i.data } })
@@ -1363,7 +1466,7 @@ class LagrangeCore {
 
     raw_message = raw_message.join('')
 
-    return { message, raw_message, node }
+    return { message, raw_message, content: '', node }
   }
 
   /**
@@ -1391,6 +1494,152 @@ class LagrangeCore {
       }
     }
     throw new Error({ status: 'error', message: '请求超时' })
+  }
+
+  /** 转为全局Markdown */
+  async Markdown (data) {
+    if (!data) {
+      return {}
+    }
+    /** 保存 Shamrock标准 message */
+    let message = []
+    /** 打印的日志 */
+    let raw_message = []
+    let content = ''
+    let node = false
+    for (let i of data) {
+      if (i?.node) node = true
+      switch (i.type) {
+        case 'at':
+          if (i.qq === 'all') {
+            content += '[@全体成员](mqqapi://markdown/mention?at_type=everyone)'
+          } else {
+            i.name = i.name || i.qq
+            content += `[@${i.name}](mqqapi://markdown/mention?at_type=1&at_tinyid=${i.qq})`
+            raw_message.push(`<@${i.qq}>`)
+          }
+          break
+        case 'face':
+          message.push({ type: 'face', data: { id: Number(i.id) } })
+          raw_message.push(`<${faceMap[Number(i.id)]}>`)
+          break
+        case 'text':
+          content += i.text
+          // if (i.text && typeof i.text !== 'number' && !i.text.trim()) break
+          message.push({ type: 'text', data: { text: i.text } })
+          raw_message.push(i.text)
+          break
+        case 'file':
+          break
+        case 'record':
+          try {
+            let file = await Bot.Base64(i.file, { http: true })
+            /** 非链接需要先上传到手机 */
+            if (!/^http(s)?:\/\//.test(file)) {
+              const data = await api.download_file(this.id, `base64://${file}`)
+              file = `file://${data.file}`
+            }
+            message.push({ type: 'record', data: { file } })
+            raw_message.push(`<语音:${i.file}>`)
+          } catch (err) {
+            common.error(this.id, '语音上传失败:', err)
+            /** 都报错了还发啥？...我以前写的什么牛马 */
+            // msg.push(await this.getFile(i, 'record'))
+            message.push({ type: 'text', data: { text: JSON.stringify(err) } })
+            raw_message.push(JSON.stringify(err))
+          }
+          break
+        case 'video':
+          try {
+            /** 笨比复读! */
+            if (i?.url) i.file = i.url
+            /** 视频文件需要先上传到手机 */
+            const { file } = await api.download_file(this.id, `base64://${await Bot.Base64(i.file)}`)
+            message.push({ type: 'video', data: { file: `file://${file}` } })
+          } catch (err) {
+            common.error(this.id, '视频上传失败:', err)
+            message.push({ type: 'text', data: { text: JSON.stringify(err) } })
+            raw_message.push(JSON.stringify(err))
+          }
+          raw_message.push(`<视频:${i.file}>`)
+          break
+        case 'image':
+          try {
+            /** 笨比复读! */
+            if (i?.url) i.file = i.url
+            i.file = await Bot.FormatFile(i.file)
+            const { width, height, url } = await Bot.imageToUrl(i.file)
+            content += `![图片 #${width} #${height}] (${url})`
+            raw_message.push(`<图片:${url}>`)
+          } catch (err) {
+            message.push({ type: 'text', data: { text: err.message } })
+            raw_message.push(err.message)
+          }
+          break
+        case 'poke':
+          message.push({ type: 'poke', data: { type: i.id, id: 0, strength: i?.strength || 0 } })
+          raw_message.push(`<${pokeMap[Number(i.id)]}>` || `<戳一戳:${i.id}>`)
+          break
+        case 'touch':
+          message.push({ type: 'touch', data: { id: i.id } })
+          raw_message.push(`<拍一拍:${i.id}>`)
+          break
+        case 'weather':
+          message.push({ type: 'weather', data: { code: i.code, city: i.city } })
+          raw_message.push(`<天气:${i?.city || i?.code}>`)
+          break
+        case 'json':
+          try {
+            let json = i.data
+            if (typeof i.data !== 'string') json = JSON.stringify(i.data)
+            message.push({ type: 'json', data: { data: json } })
+            raw_message.push(`<json:${json}>`)
+          } catch (err) {
+            message.push({ type: 'text', data: { text: JSON.stringify(err) } })
+            raw_message.push(JSON.stringify(err))
+          }
+          break
+        case 'music':
+          message.push({ type: 'music', data: i.data })
+          raw_message.push(`<音乐:${i.data.type},id:${i.data.id}>`)
+          break
+        case 'location':
+          try {
+            const { lat, lng: lon } = data
+            message.push({ type: 'location', data: { lat, lon } })
+            raw_message.push(`<位置:纬度=${lat},经度=${lon}>`)
+          } catch (err) {
+            message.push({ type: 'text', data: { text: JSON.stringify(err) } })
+            raw_message.push(JSON.stringify(err))
+          }
+          break
+        case 'share':
+          try {
+            const { url, title, image, content } = data
+            message.push({ type: 'share', data: { url, title, content, image } })
+            raw_message.push(`<链接分享:${url},标题=${title},图片链接=${image},内容=${content}>`)
+          } catch (err) {
+            message.push({ type: 'text', data: { text: JSON.stringify(err) } })
+            raw_message.push(JSON.stringify(err))
+          }
+          break
+        case 'forward':
+          message.push(i)
+          raw_message.push(`<转发消息:${i.id}>`)
+          break
+        case 'node':
+          node = true
+          message.push({ type: 'node', data: { ...i.data } })
+          raw_message.push(`<转发消息:${i.data.id}>`)
+          break
+        default:
+          // 为了兼容更多字段，不再进行序列化，风险是有可能未知字段导致LagrangeCore崩溃
+          message.push({ type: i.type, data: { ...i.data } })
+          raw_message.push(`<${i.type}:${JSON.stringify(i.data)}>`)
+          break
+      }
+    }
+    return { message, raw_message, content, node }
   }
 }
 
