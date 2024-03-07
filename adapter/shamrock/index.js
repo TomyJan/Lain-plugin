@@ -1228,6 +1228,19 @@ class Shamrock {
     const group_id = Math.floor(Math.random() * 10000) + 10000
     let messages = { type: 'node', data: { content: [{ type: 'markdown', data: { content } }] } }
 
+    let buttonData = {
+      rows: []
+    }
+    common.array(msg).filter(m => m.type === 'button').forEach(button => {
+      if (button.content?.rows) { // 收到的是icqq的button格式
+        // segment.button()
+        buttonData.rows = button.content?.rows
+      } else if (button.buttons) { // 收到的是铃音的button格式
+        buttonData.rows.push({ buttons: button.buttons })
+      }
+    })
+    messages.data.content.push({ type: 'button', data: buttonData })
+
     common.array(msg).filter(m => m.type === 'button').forEach(button => {
       if (!button.content?.rows) {
         return
@@ -1252,7 +1265,7 @@ class Shamrock {
       if (button && button?.length) messages.data.content.push(...button)
     }
     messages = [messages]
-    const node = await api.upload_multi_message(this.id, 'group', group_id, 0, messages, true)
+    const node = await api.upload_multi_message(this.id, 'group', group_id, 0, messages)
     return node.res_id
   }
 

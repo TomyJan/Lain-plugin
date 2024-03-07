@@ -1241,17 +1241,20 @@ class LagrangeCore {
         }
       }
 
+    let buttonData = {
+      rows: []
+    }
     common.array(msg).filter(m => m.type === 'button').forEach(button => {
-      if (!button.content?.rows) {
-        return
+      if (button.content?.rows) { // 收到的是icqq的button格式
+        // segment.button()
+        buttonData.rows = button.content?.rows
+      } else if (button.buttons) { // 收到的是铃音的button格式
+        buttonData.rows.push({ buttons: button.buttons })
       }
-      // 默认收到的是icqq的button格式
-      // segment.button()
-      let buttonData = {
-        rows: button.content?.rows
-      }
-      messages.data.content.push({ type: 'keyboard', data: { content: buttonData } })
     })
+    if (buttonData.rows.length > 0) {
+      messages.data.content.push({ type: 'keyboard', data: { content: buttonData } })
+    }
 
     /** 构建一个普通e给按钮用 */
     if (!e) {
