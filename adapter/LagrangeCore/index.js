@@ -659,9 +659,10 @@ class LagrangeCore {
     if (!fs.existsSync(filePath)) return true
     /** 先传到shamrock... */
     const base64 = 'base64://' + fs.readFileSync(filePath).toString('base64')
-    const { file } = await api.download_file(this.id, base64)
+    // TODO: 网络文件上传适配
+    // const { file } = await api.download_file(this.id, base64)
     const name = path.basename(filePath) || Date.now() + path.extname(filePath)
-    return await api.upload_group_file(this.id, group_id, file, name)
+    return await api.upload_group_file(this.id, group_id, filePath, name)
   }
 
   /** 上传好友文件 */
@@ -669,9 +670,10 @@ class LagrangeCore {
     if (!fs.existsSync(filePath)) return true
     /** 先传到shamrock... */
     const base64 = 'base64://' + fs.readFileSync(filePath).toString('base64')
-    const { file } = await api.download_file(this.id, base64)
+    // TODO: 网络文件上传适配
+    // const { file } = await api.download_file(this.id, base64)
     const name = path.basename(filePath) || Date.now() + path.extname(filePath)
-    return await api.upload_private_file(this.id, user_id, file, name)
+    return await api.upload_private_file(this.id, user_id, filePath, name)
   }
 
   /** 获取文件下载链接 */
