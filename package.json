@@ -31,7 +31,7 @@
     "sharp": "^0.33.1",
     "silk-wasm": "^3.2.3",
     "wechat4u": "^0.7.14",
-    "ws": "^8.16.0",
+    "ws": "^8.17.0",
     "icqq": "0.6.10"
   },
   "devDependencies": {
