@@ -10,6 +10,8 @@
 
 # 本插件主开发(Zyy955)从2024年2月20日18:00:00脱离开发，宣布永久停更，本仓库不会删库(有其他开发者，看他们心情更不更新...)
 
+原备份仓库: [all-thoughts-are-broken/Lain-plugin](https://gitee.com/all-thoughts-are-broken/Lain-plugin)
+
 
 ### 这里特别声明：
 
