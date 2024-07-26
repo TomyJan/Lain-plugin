@@ -42,7 +42,7 @@
     "eslint-plugin-n": "^17.9.0",
     "eslint-plugin-promise": "^6.6.0",
     "express-art-template": "^1.0.1",
-    "husky": "^9.1.1",
+    "husky": "^9.1.2",
     "validate-commit-msg": "^2.14.0"
   },
   "config": {
