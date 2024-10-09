@@ -38,7 +38,7 @@
     "cz-conventional-changelog": "^3.3.0",
     "eslint": "^8.57.1",
     "eslint-config-standard": "^17.1.0",
-    "eslint-plugin-import": "^2.30.0",
+    "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-n": "^17.10.2",
     "eslint-plugin-promise": "^6.6.0",
     "express-art-template": "^1.0.1",
